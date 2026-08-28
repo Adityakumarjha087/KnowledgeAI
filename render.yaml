@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: enterprise-rag-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: APP_NAME
+        value: Enterprise AI Knowledge Assistant
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        generateValue: false # Set in Render dashboard (e.g. SQLite sqlite:///enterprise_rag.db or Postgres URL)
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 60
+      - key: CORS_ORIGINS
+        value: https://your-frontend.vercel.app
+      - key: LLM_PROVIDER
+        value: openai
+      - key: LLM_API_KEY
+        sync: false # Set in Render dashboard
+      - key: LLM_API_BASE
+        value: https://openrouter.ai/api/v1
+      - key: LLM_MODEL
+        value: liquid/lfm-2.5-2.6b:free
+      - key: EMBEDDING_PROVIDER
+        value: mock
+      - key: RERANK_PROVIDER
+        value: mock
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: STORAGE_BUCKET
+        value: enterprise-rag-docs
+      - key: CHUNK_SIZE
+        value: 800
+      - key: CHUNK_OVERLAP
+        value: 150
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 10
+      - key: ALLOWED_EXTENSIONS
+        value: pdf,docx,txt,md
+      - key: RATE_LIMIT_REQUESTS_PER_MINUTE
+        value: 60

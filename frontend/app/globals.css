@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-hover: #141414;
+  --card: #0d0d0d;
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-border-hover: rgba(255, 255, 255, 0.25);
+  --text: #ffffff;
+  --text-muted: #888888;
+  --foreground: #ffffff;
+  --background: #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #000000;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Crisp Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+/* Static Black Card with White Line & Deep Shadow */
+.black-card {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.black-card:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/* White Line Accents */
+.white-line-border {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.white-line-border-hover:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Static Dark Inputs */
+.input-static {
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-static:focus {
+  outline: none;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff, 0 4px 16px rgba(0, 0, 0, 0.8);
+}
+
+.input-static::placeholder {
+  color: #555555;
+}
+
+/* High Contrast Buttons */
+.btn-white {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 700;
+  border: 1px solid #ffffff;
+  transition: all 0.2s ease;
+}
+
+.btn-white:hover {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.15);
+}
+
+.btn-black {
+  background: #0d0d0d;
+  color: #ffffff;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-black:hover {
+  background: #171717;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+
+/* Static Fine Grid Pattern */
+.bg-grid-static {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}

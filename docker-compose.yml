@@ -1,0 +1,112 @@
+version: "3.8"
+
+services:
+  # Database Service (Postgres with native pgvector extension)
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: enterprise-rag-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: enterprise_rag
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Caching and Rate Limiting Service
+  redis:
+    image: redis:7-alpine
+    container_name: enterprise-rag-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Local S3 Object Storage Service (MinIO)
+  storage:
+    image: minio/minio
+    container_name: enterprise-rag-storage
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: mock_aws_access_key
+      MINIO_ROOT_PASSWORD: mock_aws_secret_key
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: enterprise-rag-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/enterprise_rag
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_PROVIDER=s3
+      - STORAGE_BUCKET=enterprise-rag-docs
+      - AWS_ACCESS_KEY_ID=mock_aws_access_key
+      - AWS_SECRET_ACCESS_KEY=mock_aws_secret_key
+      - AWS_ENDPOINT_URL=http://storage:9000
+      - AWS_REGION=us-east-1
+      - LLM_PROVIDER=openai
+      - LLM_API_KEY=your_openai_api_key_here
+      - EMBEDDING_PROVIDER=openai
+      - EMBEDDING_MODEL=text-embedding-3-small
+      - JWT_SECRET=replace_this_with_another_secure_random_string_for_jwt
+    volumes:
+      - ./backend:/app
+    # Run database tables initialization and launch API
+    command: >
+      sh -c "python -c 'from app.models.base import Base; from app.core.database import engine; Base.metadata.create_all(bind=engine)' &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  # Next.js Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: enterprise-rag-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
