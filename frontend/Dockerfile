@@ -8,7 +8,7 @@ RUN npm ci
 
 # Copy source code and compile optimized production build
 COPY . .
-RUN npm run build
+RUN mkdir -p public && npm run build
 
 # Stage 2: Production runner stage
 FROM node:20-alpine AS runner

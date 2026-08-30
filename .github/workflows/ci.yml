@@ -19,6 +19,7 @@ jobs:
       EMBEDDING_PROVIDER: mock
       RERANK_PROVIDER: mock
       STORAGE_PROVIDER: local
+      PYTHONPATH: backend
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -28,6 +29,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install Dependencies
         run: |
