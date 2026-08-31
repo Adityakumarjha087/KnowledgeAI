@@ -1,10 +1,14 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
+import FuturisticCanvas from "@/components/FuturisticCanvas";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#000000] text-white font-sans relative overflow-x-hidden selection:bg-white selection:text-black">
+      {/* Interactive 3D futuristic particle mesh background */}
+      <FuturisticCanvas />
+      
       {/* Static Crisp Background Grid */}
       <div className="absolute inset-0 bg-grid-static [mask-image:radial-gradient(ellipse_70%_60%_at_50%_40%,#000_60%,transparent_100%)] pointer-events-none" />
 

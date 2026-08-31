@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import FuturisticCanvas from "@/components/FuturisticCanvas";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,15 +29,15 @@ export default function LoginPage() {
       formData.append("username", email);
       formData.append("password", password);
 
-      const response: { access_token: string } = await api.post("/auth/login", formData);
-      localStorage.setItem("token", response.access_token);
-
-      const userProfile = await api.get("/auth/me");
-      localStorage.setItem("user", JSON.stringify(userProfile));
+      const data = await api.post<{ access_token: string; token_type: string }>("/auth/login", formData);
+      localStorage.setItem("token", data.access_token);
+      
+      const me = await api.get<{ id: number; email: string }>("/auth/me");
+      localStorage.setItem("user", JSON.stringify(me));
 
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Failed to log in. Please check your credentials.");
+      setError(err.message || "Invalid email or password credentials.");
     } finally {
       setLoading(false);
     }
@@ -44,6 +45,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#000000] text-white font-sans relative overflow-hidden px-4 selection:bg-white selection:text-black">
+      {/* Interactive 3D futuristic particle mesh background */}
+      <FuturisticCanvas />
+
       {/* Background Static Grid */}
       <div className="absolute inset-0 bg-grid-static [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
 

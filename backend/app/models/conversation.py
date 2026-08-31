@@ -5,6 +5,8 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.document import Document
+    from app.models.feedback import Feedback
 
 
 class Conversation(Base, TimestampMixin):
@@ -16,6 +18,11 @@ class Conversation(Base, TimestampMixin):
         index=True, 
         nullable=False
     )
+    document_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     title: Mapped[str] = mapped_column(
         String(255), 
         default="New Conversation", 
@@ -25,6 +32,7 @@ class Conversation(Base, TimestampMixin):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="conversations")
+    document: Mapped[Optional["Document"]] = relationship("Document")
     messages: Mapped[List["Message"]] = relationship(
         "Message", 
         back_populates="conversation", 

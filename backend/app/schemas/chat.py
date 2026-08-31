@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ChatQueryRequest(BaseModel):
     message: str = Field(..., description="The user's question or prompt")
     conversation_id: Optional[int] = Field(None, description="Conversation ID to continue, or null to start new")
+    document_id: Optional[int] = Field(None, description="Document ID to bind to this chat session")
 
 
 class FeedbackCreateRequest(BaseModel):
@@ -40,6 +41,8 @@ class ConversationResponse(BaseModel):
     id: int
     user_id: int
     title: str
+    document_id: Optional[int] = None
+    document_filename: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

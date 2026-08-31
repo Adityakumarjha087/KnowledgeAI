@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.models.chunk import DocumentChunk
@@ -6,10 +6,11 @@ from app.models.document import Document
 from app.ai.embeddings import get_embedding_provider
 
 
-def get_lexical_search(db: Session, query: str, user_id: int, limit: int = 20) -> List[DocumentChunk]:
+def get_lexical_search(
+    db: Session, query: str, user_id: int, document_id: Optional[int] = None, limit: int = 20
+) -> List[DocumentChunk]:
     """
-    Performs keyword matching query. On PostgreSQL, utilizes full-text search vectors. 
-    On SQLite, falls back to wildcard keyword contains clauses. (Tenant Isolated).
+    Performs keyword matching query strictly scoped to user and optional specific document.
     """
     dialect = db.bind.dialect.name
     q = (
@@ -17,6 +18,8 @@ def get_lexical_search(db: Session, query: str, user_id: int, limit: int = 20) -
         .join(Document, Document.id == DocumentChunk.document_id)
         .filter(DocumentChunk.user_id == user_id)
     )
+    if document_id is not None:
+        q = q.filter(DocumentChunk.document_id == document_id)
     
     # Extract search terms to filter noise
     terms = [t for t in query.split() if len(t) > 2]
@@ -40,34 +43,36 @@ def get_lexical_search(db: Session, query: str, user_id: int, limit: int = 20) -
 
 
 def get_semantic_search(
-    db: Session, query_vector: List[float], user_id: int, limit: int = 20
+    db: Session, query_vector: List[float], user_id: int, document_id: Optional[int] = None, limit: int = 20
 ) -> List[Tuple[DocumentChunk, float]]:
     """
-    Performs vector similarity search on pgvector (PostgreSQL). 
-    On SQLite, retrieves chunks and computes cosine similarity in python space.
+    Performs vector similarity search strictly scoped to user and optional specific document.
     """
     dialect = db.bind.dialect.name
     
     if dialect == "postgresql":
         # cosine_distance in pgvector ranges from 0 to 2. Similarity = 1 - distance.
         distance_expr = DocumentChunk.embedding.cosine_distance(query_vector)
-        results = (
+        q = (
             db.query(DocumentChunk, (1.0 - distance_expr).label("similarity"))
             .join(Document, Document.id == DocumentChunk.document_id)
             .filter(DocumentChunk.user_id == user_id)
-            .order_by(distance_expr)
-            .limit(limit)
-            .all()
         )
+        if document_id is not None:
+            q = q.filter(DocumentChunk.document_id == document_id)
+        results = q.order_by(distance_expr).limit(limit).all()
         return [(row[0], float(row[1])) for row in results]
     else:
         # SQLite test environment fallback: compute cosine similarity in python
-        chunks = (
+        q = (
             db.query(DocumentChunk)
             .join(Document, Document.id == DocumentChunk.document_id)
             .filter(DocumentChunk.user_id == user_id)
-            .all()
         )
+        if document_id is not None:
+            q = q.filter(DocumentChunk.document_id == document_id)
+        chunks = q.all()
+
         scores: List[Tuple[DocumentChunk, float]] = []
         
         for c in chunks:
@@ -86,10 +91,10 @@ def get_semantic_search(
 
 
 def hybrid_retrieval(
-    db: Session, query: str, user_id: int, limit: int = 5
+    db: Session, query: str, user_id: int, document_id: Optional[int] = None, limit: int = 5
 ) -> List[Dict[str, Any]]:
     """
-    Combines semantic and lexical retrieval engines.
+    Combines semantic and lexical retrieval engines strictly scoped to the active document.
     Merges and ranks results using Reciprocal Rank Fusion (RRF) for high recall.
     """
     # 1. Fetch query vector
@@ -97,8 +102,8 @@ def hybrid_retrieval(
     query_vector = provider.get_embedding(query)
     
     # 2. Fetch retrieval candidate lists
-    lexical_candidates = get_lexical_search(db, query, user_id, limit=20)
-    semantic_candidates_with_sim = get_semantic_search(db, query_vector, user_id, limit=20)
+    lexical_candidates = get_lexical_search(db, query, user_id, document_id=document_id, limit=20)
+    semantic_candidates_with_sim = get_semantic_search(db, query_vector, user_id, document_id=document_id, limit=20)
     
     semantic_candidates = [item[0] for item in semantic_candidates_with_sim]
     semantic_sim_map = {item[0].id: item[1] for item in semantic_candidates_with_sim}

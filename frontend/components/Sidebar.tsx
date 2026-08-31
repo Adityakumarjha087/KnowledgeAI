@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import FuturisticCanvas from "./FuturisticCanvas";
 
 interface SidebarProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ export default function Sidebar({ children }: SidebarProps) {
   const pathname = usePathname();
   const [userEmail, setUserEmail] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -41,8 +43,9 @@ export default function Sidebar({ children }: SidebarProps) {
 
   if (!authenticated) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#000000] text-white font-sans">
-        <div className="flex flex-col items-center gap-3">
+      <div className="flex h-screen w-screen items-center justify-center bg-[#000000] text-white font-sans relative">
+        <FuturisticCanvas />
+        <div className="flex flex-col items-center gap-3 z-10">
           <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           <span className="text-xs font-mono text-white/50">Loading workspace...</span>
         </div>
@@ -81,9 +84,35 @@ export default function Sidebar({ children }: SidebarProps) {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#000000] text-white font-sans">
+    <div className="flex min-h-screen bg-[#000000] text-white font-sans relative overflow-hidden">
+      {/* Interactive 3D futuristic particle mesh canvas in ambient layer */}
+      <FuturisticCanvas />
+
+      {/* Mobile Header Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#050505]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-40">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center font-black text-black text-xs">
+            K
+          </div>
+          <span className="font-bold text-sm tracking-tight text-white">KnowledgeAI</span>
+        </Link>
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
       {/* Sidebar Panel */}
-      <aside className="w-64 border-r border-white/10 bg-[#050505] flex flex-col justify-between p-6 shrink-0 h-screen sticky top-0 z-20">
+      <aside className={`
+        fixed md:sticky top-0 bottom-0 z-30
+        w-64 border-r border-white/10 bg-[#050505]/95 backdrop-blur-xl
+        flex flex-col justify-between p-6 shrink-0 h-screen transition-transform duration-300
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+      `}>
         <div>
           {/* Logo Title */}
           <Link href="/dashboard" className="flex items-center gap-3 mb-8 px-2 group">
@@ -103,6 +132,7 @@ export default function Sidebar({ children }: SidebarProps) {
                 <Link
                   key={item.name}
                   href={item.path}
+                  onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
                     active
                       ? "bg-white text-black border-white shadow-sm font-bold"
@@ -138,10 +168,19 @@ export default function Sidebar({ children }: SidebarProps) {
         </div>
       </aside>
 
+      {/* Backdrop overlay for mobile */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden"
+        />
+      )}
+
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto bg-[#000000] relative">
-        <div className="p-8 md:p-12 flex-1 flex flex-col">{children}</div>
+      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto bg-transparent relative z-10 pt-14 md:pt-0">
+        <div className="p-4 sm:p-8 md:p-12 flex-1 flex flex-col">{children}</div>
       </main>
     </div>
   );
 }
+

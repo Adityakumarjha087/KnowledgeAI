@@ -75,8 +75,8 @@ class MockLLMProvider(LLMProvider):
 
             if not context_raw or context_raw == "":
                 response_text = (
-                    "I could not find any information regarding your query in the uploaded documents. "
-                    "Please make sure your relevant document is uploaded and processed in the Documents section."
+                    "I could not find any information regarding your query in the active chat document. "
+                    "Please make sure a relevant document is attached to this chat session using the 📎 paperclip icon below."
                 )
             else:
                 # Parse individual source blocks: [1] File: ... Content: ...

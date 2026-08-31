@@ -207,15 +207,20 @@ def chat_query(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Initiates RAG query pipeline. Creates a conversation if missing, rewrites
-    the query with memory, triggers hybrid retrieval + reranking, and returns an SSE stream.
+    Initiates RAG query pipeline with strict chat-level document isolation.
+    Creates a conversation if missing, binds document_id, rewrites query with memory,
+    triggers hybrid retrieval strictly scoped to the active document, and returns an SSE stream.
     """
     conversation_id = request.conversation_id
     
     # 1. Create new conversation if none provided
     if conversation_id is None:
         title = request.message[:40] + ("..." if len(request.message) > 40 else "")
-        conv = Conversation(user_id=current_user.id, title=title)
+        conv = Conversation(
+            user_id=current_user.id, 
+            title=title, 
+            document_id=request.document_id
+        )
         db.add(conv)
         db.commit()
         db.refresh(conv)
@@ -227,6 +232,12 @@ def chat_query(
             raise HTTPException(status_code=404, detail="Conversation not found")
         if conv.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this conversation")
+        
+        # Update document association if a new document was attached to this conversation
+        if request.document_id and conv.document_id != request.document_id:
+            conv.document_id = request.document_id
+            db.commit()
+            db.refresh(conv)
 
     # 2. Retrieve history for query rewriting
     history_records = (
@@ -240,15 +251,21 @@ def chat_query(
 
     # 3. Check for conversational greetings vs factual queries
     is_greeting = is_conversational_greeting(request.message)
-    if is_greeting:
+    if is_greeting or not conv.document_id:
         standalone_query = request.message
         reranked_chunks = []
     else:
         # Rewrite context-dependent queries using memory
         standalone_query = rewrite_query(request.message, history_list)
 
-        # 4. Perform Hybrid search (Semantic + Keywords)
-        candidates = hybrid_retrieval(db, standalone_query, current_user.id, limit=15)
+        # 4. Perform Hybrid search strictly isolated to this conversation's document
+        candidates = hybrid_retrieval(
+            db, 
+            standalone_query, 
+            current_user.id, 
+            document_id=conv.document_id, 
+            limit=15
+        )
 
         # 5. Apply Context Reranking
         reranker = get_reranker()
@@ -271,18 +288,31 @@ def chat_query(
     )
 
 
+def serialize_conversation(conv: Conversation) -> dict:
+    return {
+        "id": conv.id,
+        "user_id": conv.user_id,
+        "title": conv.title,
+        "document_id": conv.document_id,
+        "document_filename": conv.document.filename if conv.document else None,
+        "created_at": conv.created_at,
+        "updated_at": conv.updated_at,
+    }
+
+
 @router.get("/conversations", response_model=List[ConversationResponse])
 def list_conversations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Lists chat sessions of the active user ordered by last updated"""
-    return (
+    conversations = (
         db.query(Conversation)
         .filter(Conversation.user_id == current_user.id)
         .order_by(Conversation.updated_at.desc())
         .all()
     )
+    return [serialize_conversation(c) for c in conversations]
 
 
 @router.get("/conversations/{conv_id}", response_model=ConversationDetailResponse)
@@ -297,7 +327,11 @@ def get_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
     if conv.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this conversation")
-    return conv
+    
+    data = serialize_conversation(conv)
+    data["messages"] = conv.messages
+    return data
+
 
 
 @router.put("/conversations/{conv_id}", response_model=ConversationResponse)
@@ -317,7 +351,8 @@ def update_conversation_title(
     conv.title = payload.title
     db.commit()
     db.refresh(conv)
-    return conv
+    return serialize_conversation(conv)
+
 
 
 @router.delete("/conversations/{conv_id}", status_code=status.HTTP_204_NO_CONTENT)

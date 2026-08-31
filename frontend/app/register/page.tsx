@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import FuturisticCanvas from "@/components/FuturisticCanvas";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -51,6 +52,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#000000] text-white font-sans relative overflow-hidden px-4 selection:bg-white selection:text-black">
+      {/* Interactive 3D futuristic particle mesh background */}
+      <FuturisticCanvas />
+
       {/* Background Static Grid */}
       <div className="absolute inset-0 bg-grid-static [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
 
