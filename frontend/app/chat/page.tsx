@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
@@ -38,7 +38,41 @@ export default function ChatPage() {
   const [feedbackRating, setFeedbackRating] = useState<number>(1);
   const [feedbackComment, setFeedbackComment] = useState("");
 
+  // Document attachment inside chat
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadFile(file);
+  };
+
+  const uploadFile = async (file: File) => {
+    setUploadingDoc(true);
+    setAttachedFileName(file.name);
+    setUploadStatus("Uploading & Indexing...");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await api.post<any>("/documents/upload", formData);
+      setUploadStatus("Ready");
+      if (!inputMessage.trim()) {
+        setInputMessage(`Explain the key details in ${file.name}`);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to upload document");
+      setAttachedFileName(null);
+      setUploadStatus(null);
+    } finally {
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -426,26 +460,80 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Panel */}
+          {/* Input Panel with Direct Document Attachment */}
           <form onSubmit={handleSendMessage} className="p-5 border-t border-white/10 bg-[#050505]">
-            <div className="relative flex items-center max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto space-y-2">
+              {/* Attached file status banner */}
+              {attachedFileName && (
+                <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 w-fit text-xs font-mono animate-fadeIn">
+                  <span className="text-white/70">📄</span>
+                  <span className="text-white font-semibold truncate max-w-xs">{attachedFileName}</span>
+                  {uploadingDoc ? (
+                    <span className="text-yellow-400 text-[10px] flex items-center gap-1 font-sans">
+                      <span className="w-2.5 h-2.5 border-2 border-yellow-400/20 border-t-yellow-400 rounded-full animate-spin" />
+                      Uploading & Indexing...
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 text-[10px] font-sans flex items-center gap-1">
+                      <span>✓</span> Ready in context
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachedFileName(null);
+                      setUploadStatus(null);
+                    }}
+                    className="text-white/40 hover:text-white ml-2 text-xs cursor-pointer"
+                    title="Remove attachment"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Hidden file input for direct attachment */}
               <input
-                type="text"
-                disabled={generating}
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Ask anything about policies, manuals, contracts..."
-                className="w-full pl-4 pr-12 py-3 rounded-xl input-static text-xs font-medium disabled:opacity-50"
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".pdf,.docx,.txt,.md"
+                onChange={handleFileUpload}
               />
-              <button
-                type="submit"
-                disabled={!inputMessage.trim() || generating}
-                className="absolute right-2 p-2 rounded-lg btn-white text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
+
+              <div className="relative flex items-center">
+                {/* Paperclip attachment button */}
+                <button
+                  type="button"
+                  disabled={uploadingDoc || generating}
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Attach document (.pdf, .docx, .txt, .md)"
+                  className="absolute left-2.5 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-30 z-10"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+
+                <input
+                  type="text"
+                  disabled={generating}
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={attachedFileName ? `Ask anything about ${attachedFileName}...` : "Attach a document 📎 or ask anything about policies, manuals, contracts..."}
+                  className="w-full pl-10 pr-12 py-3 rounded-xl input-static text-xs font-medium disabled:opacity-50"
+                />
+
+                <button
+                  type="submit"
+                  disabled={!inputMessage.trim() || generating || uploadingDoc}
+                  className="absolute right-2 p-2 rounded-lg btn-white text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </form>
         </div>

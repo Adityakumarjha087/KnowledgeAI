@@ -85,8 +85,10 @@ class MockLLMProvider(LLMProvider):
                 
                 # Extract question keywords
                 query_words = set(w.lower() for w in re.findall(r"\w+", user_prompt) if len(w) > 2)
+                stopwords = {"what", "when", "where", "which", "who", "whom", "whose", "why", "how", "the", "and", "for", "are", "is", "about", "tell", "give", "please", "with", "does", "from", "can", "you", "much", "many", "this", "that", "these", "those", "have", "has", "had", "file", "document", "pdf", "explain", "info", "full", "summary", "summarize", "something", "check"}
+                keywords = query_words - stopwords
                 # Check if user specifically requested a summary / overview
-                is_summary_query = bool(re.search(r"\b(summary|summarize|overview|explain|outline|topics|all)\b", user_prompt.lower()))
+                is_summary_query = bool(re.search(r"\b(summary|summarize|overview|explain|outline|topics|all|info|everything)\b", user_prompt.lower()))
                 
                 matched_points = []
                 seen_snippets = set()

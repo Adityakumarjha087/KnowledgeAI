@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.api.deps import get_current_active_user
 from app.models.user import User
 from app.models.document import Document
+from app.models.chunk import DocumentChunk
 from app.schemas.document import DocumentResponse
 from app.services.storage import get_storage_provider
 from app.services.ingestion import ingest_document_task
