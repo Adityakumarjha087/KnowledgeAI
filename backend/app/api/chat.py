@@ -28,6 +28,20 @@ from app.services.memory import rewrite_query
 router = APIRouter(tags=["chat"])
 
 
+def is_conversational_greeting(query: str) -> bool:
+    """Detects simple conversational pleasantries and greetings that don't need document retrieval"""
+    import re
+    cleaned = re.sub(r"[^\w\s]", "", query.strip().lower())
+    greetings = {
+        "hi", "hey", "hello", "hola", "greetings", "good morning", 
+        "good afternoon", "good evening", "howdy", "sup", "yo",
+        "how are you", "how are you doing", "whats up", "what's up",
+        "who are you", "what can you do", "help", "thank you", "thanks", "bye", "goodbye",
+        "hi there", "hello there", "hey there"
+    }
+    return cleaned in greetings
+
+
 def stream_rag_response(
     conversation_id: int,
     user_id: int,
@@ -70,16 +84,25 @@ def stream_rag_response(
     yield f"data: {json.dumps({'type': 'sources', 'sources': sources_metadata})}\n\n"
     
     # 3. Assemble Prompts
-    system_prompt = (
-        "You are a secure, professional Enterprise AI Knowledge Assistant. "
-        "Your task is to answer the user's question truthfully, using ONLY the facts provided "
-        "in the Context section below. "
-        "If the Context does not contain the information required to answer the question, "
-        "state clearly and concisely that the information is not available in the uploaded documents. "
-        "Do not fabricate or hallucinate any facts.\n\n"
-        "Cite the sources you use (e.g. [1], [2]) directly in your sentences when referencing their facts.\n\n"
-        f"--- CONTEXT START ---\n{context_text}\n--- CONTEXT END ---"
-    )
+    if not context_chunks and is_conversational_greeting(user_message):
+        system_prompt = (
+            "You are a friendly, professional Enterprise AI Knowledge Assistant. "
+            "Greet the user warmly, politely, and concisely. "
+            "Explain that you can answer questions, summarize policies, and provide verified citations "
+            "based on any documents uploaded to the knowledge base."
+        )
+    else:
+        system_prompt = (
+            "You are a secure, professional Enterprise AI Knowledge Assistant. "
+            "For general greetings or pleasantries, respond warmly and naturally. "
+            "For questions regarding facts, policies, or procedures, answer truthfully using ONLY the facts provided "
+            "in the Context section below. "
+            "If the Context does not contain the information required to answer the question, "
+            "state clearly and concisely that the information is not available in the uploaded documents. "
+            "Do not fabricate or hallucinate any facts.\n\n"
+            "Cite the sources you use (e.g. [1], [2]) directly in your sentences when referencing their facts.\n\n"
+            f"--- CONTEXT START ---\n{context_text}\n--- CONTEXT END ---"
+        )
     
     # Fetch recent history from DB for LLM session
     db_read = session_factory()
@@ -215,15 +238,21 @@ def chat_query(
     )
     history_list = [{"role": r.role, "content": r.content} for r in history_records]
 
-    # 3. Rewrite context-dependent queries using memory
-    standalone_query = rewrite_query(request.message, history_list)
+    # 3. Check for conversational greetings vs factual queries
+    is_greeting = is_conversational_greeting(request.message)
+    if is_greeting:
+        standalone_query = request.message
+        reranked_chunks = []
+    else:
+        # Rewrite context-dependent queries using memory
+        standalone_query = rewrite_query(request.message, history_list)
 
-    # 4. Perform Hybrid search (Semantic + Keywords)
-    candidates = hybrid_retrieval(db, standalone_query, current_user.id, limit=15)
+        # 4. Perform Hybrid search (Semantic + Keywords)
+        candidates = hybrid_retrieval(db, standalone_query, current_user.id, limit=15)
 
-    # 5. Apply Context Reranking
-    reranker = get_reranker()
-    reranked_chunks = reranker.rerank(standalone_query, candidates, top_k=5)
+        # 5. Apply Context Reranking
+        reranker = get_reranker()
+        reranked_chunks = reranker.rerank(standalone_query, candidates, top_k=5)
 
     # Create session factory dynamically bound to the current transaction's engine (handles tests SQLite dynamically!)
     session_factory = sessionmaker(bind=db.bind)
