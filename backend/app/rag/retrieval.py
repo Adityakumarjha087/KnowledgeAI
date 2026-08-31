@@ -12,7 +12,11 @@ def get_lexical_search(db: Session, query: str, user_id: int, limit: int = 20) -
     On SQLite, falls back to wildcard keyword contains clauses. (Tenant Isolated).
     """
     dialect = db.bind.dialect.name
-    q = db.query(DocumentChunk).filter(DocumentChunk.user_id == user_id)
+    q = (
+        db.query(DocumentChunk)
+        .join(Document, Document.id == DocumentChunk.document_id)
+        .filter(DocumentChunk.user_id == user_id)
+    )
     
     # Extract search terms to filter noise
     terms = [t for t in query.split() if len(t) > 2]
@@ -49,6 +53,7 @@ def get_semantic_search(
         distance_expr = DocumentChunk.embedding.cosine_distance(query_vector)
         results = (
             db.query(DocumentChunk, (1.0 - distance_expr).label("similarity"))
+            .join(Document, Document.id == DocumentChunk.document_id)
             .filter(DocumentChunk.user_id == user_id)
             .order_by(distance_expr)
             .limit(limit)
@@ -57,7 +62,12 @@ def get_semantic_search(
         return [(row[0], float(row[1])) for row in results]
     else:
         # SQLite test environment fallback: compute cosine similarity in python
-        chunks = db.query(DocumentChunk).filter(DocumentChunk.user_id == user_id).all()
+        chunks = (
+            db.query(DocumentChunk)
+            .join(Document, Document.id == DocumentChunk.document_id)
+            .filter(DocumentChunk.user_id == user_id)
+            .all()
+        )
         scores: List[Tuple[DocumentChunk, float]] = []
         
         for c in chunks:

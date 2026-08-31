@@ -125,7 +125,10 @@ def delete_document(
     except Exception as e:
         print(f"Failed to delete storage file {doc.filename}: {str(e)}")
 
-    # Delete DB records (cascade deletes chunks automatically)
+    # Explicitly delete all associated document chunks (handles SQLite cascade)
+    db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).delete()
+
+    # Delete Document record
     db.delete(doc)
     db.commit()
     return None

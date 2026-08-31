@@ -14,9 +14,17 @@ def format_history_for_rewrite(history: List[Dict[str, str]]) -> str:
 def rewrite_query(original_query: str, history: List[Dict[str, str]]) -> str:
     """
     Analyzes conversation history and uses the LLM to rewrite follow-up questions 
-    into standalone search queries. Returns the original query if no history is present.
+    into standalone search queries. Returns the original query if no history is present
+    or if running in local/mock mode without an external LLM API key.
     """
+    from app.core.config import settings
+
     if not history:
+        return original_query
+
+    # If no real external LLM API key is configured, preserve user's original query
+    api_key = settings.LLM_API_KEY
+    if not api_key or "your_" in api_key or "placeholder" in api_key:
         return original_query
         
     # Grab the last 4 messages to keep context window compact and fast
@@ -35,8 +43,8 @@ def rewrite_query(original_query: str, history: List[Dict[str, str]]) -> str:
     try:
         llm = get_llm_provider()
         tokens = llm.generate_stream(system_prompt, user_prompt, [])
-        rewritten = "".join(list(tokens)).strip()
-        if rewritten:
+        rewritten = "".join(list(tokens)).strip().strip('"').strip("'")
+        if rewritten and len(rewritten) < 200 and not rewritten.lower().startswith("i could not"):
             print(f"Rewrote query '{original_query}' -> '{rewritten}'")
             return rewritten
     except Exception as e:

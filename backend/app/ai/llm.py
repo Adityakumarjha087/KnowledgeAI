@@ -85,11 +85,12 @@ class MockLLMProvider(LLMProvider):
                 
                 # Extract question keywords
                 query_words = set(w.lower() for w in re.findall(r"\w+", user_prompt) if len(w) > 2)
-                # Remove common stop words
-                stopwords = {"what", "when", "where", "which", "who", "whom", "whose", "why", "how", "the", "and", "for", "are", "is", "about", "tell", "give", "please", "with", "does", "from", "can", "you", "much", "many"}
-                keywords = query_words - stopwords
+                # Check if user specifically requested a summary / overview
+                is_summary_query = bool(re.search(r"\b(summary|summarize|overview|explain|outline|topics|all)\b", user_prompt.lower()))
                 
                 matched_points = []
+                seen_snippets = set()
+
                 for block in source_blocks:
                     header_match = re.match(r"(\[\d+\])\s+File:\s*([^\n]+)", block)
                     cite_tag = header_match.group(1) if header_match else "[1]"
@@ -99,21 +100,32 @@ class MockLLMProvider(LLMProvider):
                     content_lines = [l.replace("Content:", "").strip() for l in lines if not l.startswith("[") and l.strip()]
                     
                     for line in content_lines:
-                        # Clean bullets
+                        # Clean bullets and partial leading phrases
                         clean_line = re.sub(r"^[•\-\*\d\.]+\s*", "", line).strip()
-                        if not clean_line or len(clean_line) < 10:
+                        if clean_line.startswith("coordination."):
+                            clean_line = clean_line.replace("coordination.", "").strip()
+                        if not clean_line or len(clean_line) < 15:
                             continue
+
+                        # Deduplicate by key prefix to prevent chunk-overlap duplicate bullets
+                        norm_prefix = clean_line[:40].lower()
+                        if norm_prefix in seen_snippets:
+                            continue
+                        seen_snippets.add(norm_prefix)
+
                         line_words = set(w.lower() for w in re.findall(r"\w+", clean_line))
                         overlap = len(keywords & line_words)
-                        if overlap > 0 or not keywords:
+                        if overlap > 0 or not keywords or is_summary_query:
                             matched_points.append((overlap, f"{clean_line} {cite_tag}"))
 
                 if matched_points:
-                    # Sort by keyword match relevance
-                    matched_points.sort(key=lambda x: x[0], reverse=True)
-                    top_facts = [p[1] for p in matched_points[:4]]
+                    if not is_summary_query and keywords:
+                        # Sort by keyword match relevance
+                        matched_points.sort(key=lambda x: x[0], reverse=True)
+                    top_facts = [p[1] for p in matched_points[:6]]
+                    heading = "Here is a comprehensive summary of your uploaded document:" if is_summary_query else "Based on your uploaded documents:"
                     response_text = (
-                        "Based on your uploaded documents:\n\n"
+                        f"{heading}\n\n"
                         + "\n\n".join(f"• {fact}" for fact in top_facts)
                     )
                 else:
@@ -122,6 +134,7 @@ class MockLLMProvider(LLMProvider):
                     lines = [l for l in first_block.split("\n") if not l.startswith("[") and len(l.strip()) > 15]
                     snippet = lines[0] if lines else first_block[:200]
                     response_text = f"According to your uploaded documents [1]:\n\n{snippet}"
+
 
         # Stream the extracted response token by token
         words = response_text.split(" ")
