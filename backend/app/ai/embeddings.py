@@ -19,16 +19,38 @@ class EmbeddingProvider(ABC):
 
 class MockEmbeddingProvider(EmbeddingProvider):
     def get_embedding(self, text: str) -> List[float]:
-        # Produce a deterministic vector based on the text hash for test consistency
-        h = hashlib.md5(text.encode("utf-8")).hexdigest()
-        seed = int(h[:8], 16) / 4294967295.0
+        """
+        Produces a feature-hashed dense vector representation of text based on
+        words and character n-grams, normalized to unit length for accurate cosine similarity.
+        """
+        import re
+        import math
         dim = settings.EMBEDDING_DIMENSION
+        vec = [0.0] * dim
         
-        vec = []
-        for i in range(dim):
-            # Generate deterministic floats between -0.5 and 0.5
-            val = (seed + (i / dim)) % 1.0 - 0.5
-            vec.append(round(val, 6))
+        # Clean and extract words and subwords
+        tokens = re.findall(r"\w+", text.lower())
+        if not tokens:
+            return vec
+            
+        for token in tokens:
+            # Word hash bucket
+            h_word = int(hashlib.md5(token.encode("utf-8")).hexdigest(), 16)
+            idx = h_word % dim
+            vec[idx] += 1.0
+            
+            # Character trigrams for subword matching
+            if len(token) >= 3:
+                for i in range(len(token) - 2):
+                    trigram = token[i:i+3]
+                    h_tri = int(hashlib.md5(trigram.encode("utf-8")).hexdigest(), 16)
+                    idx_tri = h_tri % dim
+                    vec[idx_tri] += 0.3
+                    
+        # L2-normalize vector
+        norm = math.sqrt(sum(v * v for v in vec))
+        if norm > 0:
+            vec = [round(v / norm, 6) for v in vec]
         return vec
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:

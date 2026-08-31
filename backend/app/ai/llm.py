@@ -39,17 +39,73 @@ class MockLLMProvider(LLMProvider):
         user_prompt: str, 
         history: List[Dict[str, str]]
     ) -> Generator[str, None, None]:
-        # Yield a simulated streaming text response
-        response_text = (
-            "According to the policy documents, regular employees get 20 days of annual leave. "
-            "Managers require 2 weeks notice before approvals.\n\n"
-            "Sources:\n1. HR_Policy.txt — Page 1"
-        )
+        import re
         import time
+
+        # Extract context block between --- CONTEXT START --- and --- CONTEXT END ---
+        context_match = re.search(
+            r"--- CONTEXT START ---\s*(.*?)\s*--- CONTEXT END ---", 
+            system_prompt, 
+            re.DOTALL
+        )
+        context_raw = context_match.group(1).strip() if context_match else ""
+
+        if not context_raw or context_raw == "":
+            response_text = (
+                "I could not find any information regarding your query in the uploaded documents. "
+                "Please make sure your relevant document is uploaded and processed in the Documents section."
+            )
+        else:
+            # Parse individual source blocks: [1] File: ... Content: ...
+            source_blocks = re.split(r"(?=\[\d+\]\s+File:)", context_raw)
+            source_blocks = [b.strip() for b in source_blocks if b.strip()]
+            
+            # Extract question keywords
+            query_words = set(w.lower() for w in re.findall(r"\w+", user_prompt) if len(w) > 2)
+            # Remove common stop words
+            stopwords = {"what", "when", "where", "which", "who", "whom", "whose", "why", "how", "the", "and", "for", "are", "is", "about", "tell", "give", "please", "with", "does", "from", "can", "you", "much", "many"}
+            keywords = query_words - stopwords
+            
+            matched_points = []
+            for block in source_blocks:
+                header_match = re.match(r"(\[\d+\])\s+File:\s*([^\n]+)", block)
+                cite_tag = header_match.group(1) if header_match else "[1]"
+                
+                # Split content into sentences/lines
+                lines = block.split("\n")
+                content_lines = [l.replace("Content:", "").strip() for l in lines if not l.startswith("[") and l.strip()]
+                
+                for line in content_lines:
+                    # Clean bullets
+                    clean_line = re.sub(r"^[•\-\*\d\.]+\s*", "", line).strip()
+                    if not clean_line or len(clean_line) < 10:
+                        continue
+                    line_words = set(w.lower() for w in re.findall(r"\w+", clean_line))
+                    overlap = len(keywords & line_words)
+                    if overlap > 0 or not keywords:
+                        matched_points.append((overlap, f"{clean_line} {cite_tag}"))
+
+            if matched_points:
+                # Sort by keyword match relevance
+                matched_points.sort(key=lambda x: x[0], reverse=True)
+                top_facts = [p[1] for p in matched_points[:4]]
+                response_text = (
+                    "Based on your uploaded documents:\n\n"
+                    + "\n\n".join(f"• {fact}" for fact in top_facts)
+                )
+            else:
+                # Fallback to returning relevant top excerpts with citations
+                first_block = source_blocks[0] if source_blocks else ""
+                lines = [l for l in first_block.split("\n") if not l.startswith("[") and len(l.strip()) > 15]
+                snippet = lines[0] if lines else first_block[:200]
+                response_text = f"According to your uploaded documents [1]:\n\n{snippet}"
+
+        # Stream the extracted response token by token
         words = response_text.split(" ")
-        for word in words:
-            time.sleep(0.04)  # Simulate human-like network typing latency
-            yield word + " "
+        for i, word in enumerate(words):
+            time.sleep(0.02)
+            suffix = " " if i < len(words) - 1 else ""
+            yield word + suffix
 
 
 class OpenAILLMProvider(LLMProvider):
