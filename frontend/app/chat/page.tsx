@@ -56,6 +56,19 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, generating]);
 
+  // Escape closes whichever dialog is open.
+  const dialogOpen = inspectSource !== null || feedbackMessageId !== null;
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setInspectSource(null);
+      setFeedbackMessageId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dialogOpen]);
+
   const fetchConversations = async () => {
     try {
       const list = await api.get<ConversationItem[]>("/conversations");
@@ -416,7 +429,7 @@ export default function ChatPage() {
           </div>
 
           {error && (
-            <div className="absolute top-14 left-1/2 -translate-x-1/2 p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-medium text-center z-20 shadow-lg">
+            <div role="alert" className="absolute top-14 left-1/2 -translate-x-1/2 p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-medium text-center z-20 shadow-lg">
               {error}
             </div>
           )}
@@ -610,7 +623,7 @@ export default function ChatPage() {
       {/* Modal: Source Inspector */}
       {inspectSource && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="black-card w-full max-w-xl rounded-2xl p-6 space-y-4 shadow-2xl border border-white/20">
+          <div role="dialog" aria-modal="true" aria-label="Source citation inspector" className="black-card w-full max-w-xl rounded-2xl p-6 space-y-4 shadow-2xl border border-white/20">
             <div className="flex justify-between items-center pb-3 border-b border-white/10">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <span>📄</span> Source Citation Inspector
@@ -637,7 +650,7 @@ export default function ChatPage() {
       {/* Modal: Feedback */}
       {feedbackMessageId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="black-card w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl border border-white/20">
+          <div role="dialog" aria-modal="true" aria-label="Answer feedback" className="black-card w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl border border-white/20">
             <div className="flex justify-between items-center pb-3 border-b border-white/10">
               <h3 className="font-bold text-white text-sm">Answer Feedback</h3>
               <button onClick={() => setFeedbackMessageId(null)} aria-label="Close" className="text-white/40 hover:text-white cursor-pointer text-sm font-bold">
