@@ -73,7 +73,7 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs text-center font-medium">
+          <div role="alert" className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs text-center font-medium">
             {error}
           </div>
         )}
@@ -86,6 +86,7 @@ export default function RegisterPage() {
             <input
               id="name"
               type="text"
+              autoComplete="name"
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -101,6 +102,7 @@ export default function RegisterPage() {
             <input
               id="email"
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -116,6 +118,7 @@ export default function RegisterPage() {
             <input
               id="password"
               type="password"
+              autoComplete="new-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -127,10 +130,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg btn-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md mt-2"
+            aria-busy={loading}
+            className="w-full py-3 rounded-lg btn-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              <>
+                <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" aria-hidden="true" />
+                <span className="sr-only">Creating account…</span>
+              </>
             ) : (
               "Get Started"
             )}
