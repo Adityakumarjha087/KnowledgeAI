@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { api } from "@/lib/api";
 
@@ -22,19 +22,22 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchMetrics() {
-      try {
-        const data = await api.get<Metrics>("/metrics");
-        setMetrics(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load metrics dashboard.");
-      } finally {
-        setLoading(false);
-      }
+  const fetchMetrics = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await api.get<Metrics>("/metrics");
+      setMetrics(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load metrics dashboard.");
+    } finally {
+      setLoading(false);
     }
-    fetchMetrics();
   }, []);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
 
   return (
     <Sidebar>
@@ -63,12 +66,20 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-1 items-center justify-center min-h-[300px]">
-            <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <div role="status" aria-live="polite" className="flex flex-1 items-center justify-center min-h-[300px]">
+            <div aria-hidden="true" className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <span className="sr-only">Loading metrics</span>
           </div>
         ) : error ? (
-          <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-medium max-w-lg">
-            {error}
+          <div role="alert" className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-medium max-w-lg flex items-center justify-between gap-4">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={fetchMetrics}
+              className="shrink-0 px-3 py-1.5 rounded-lg border border-red-400/40 text-red-200 hover:bg-red-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-300"
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -128,7 +139,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-white/60 font-normal leading-relaxed">
                       Percentage of generated answers rated as <strong className="text-white font-semibold">helpful</strong> by users.
                     </p>
-                    <div className="w-full bg-white/10 border border-white/10 h-2 rounded-full overflow-hidden">
+                    <div role="progressbar" aria-label="Helpfulness rating" aria-valuemin={0} aria-valuemax={100} aria-valuenow={metrics?.helpfulness_rating_percent || 0} className="w-full bg-white/10 border border-white/10 h-2 rounded-full overflow-hidden">
                       <div 
                         className="bg-white h-full rounded-full transition-all duration-500" 
                         style={{ width: `${metrics?.helpfulness_rating_percent || 0}%` }}
@@ -149,7 +160,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-white/60 font-normal leading-relaxed">
                       Percentage of retrieval or inference operations encountering issues.
                     </p>
-                    <div className="w-full bg-white/10 border border-white/10 h-2 rounded-full overflow-hidden">
+                    <div role="progressbar" aria-label="RAG error rate" aria-valuemin={0} aria-valuemax={100} aria-valuenow={metrics?.error_rate_percent || 0} className="w-full bg-white/10 border border-white/10 h-2 rounded-full overflow-hidden">
                       <div 
                         className="bg-white/40 h-full rounded-full transition-all duration-500" 
                         style={{ width: `${metrics?.error_rate_percent || 0}%` }}
