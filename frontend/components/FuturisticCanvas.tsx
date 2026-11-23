@@ -156,21 +156,24 @@ export default function FuturisticCanvas() {
         ctx.shadowBlur = 0; // Reset shadow for lines
       }
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!reduceMotion) animationFrameId = requestAnimationFrame(render);
     };
 
+    // Honour the OS "reduce motion" setting: draw a single still frame.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     render();
 
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId !== undefined) cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
+      aria-hidden="true"
       className="fixed inset-0 pointer-events-none z-0 opacity-80"
     />
   );
