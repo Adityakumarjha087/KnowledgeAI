@@ -25,15 +25,18 @@ export default function EvaluationPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const fetchEvaluation = async (showLoading = true) => {
+  const fetchEvaluation = async (showLoading = true): Promise<boolean> => {
     if (showLoading) setLoading(true);
     setError("");
     try {
       const data = await api.get<EvalReport>("/evaluation");
       setReport(data);
+      return true;
     } catch (err: any) {
       setError(err.message || "Failed to load evaluation reports.");
+      return false;
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -45,9 +48,10 @@ export default function EvaluationPage() {
 
   const handleRunEvaluation = async () => {
     setRunning(true);
+    setNotice("");
     try {
-      await fetchEvaluation(false);
-      alert("RAG Evaluation Suite completed successfully! Scorecard updated.");
+      const ok = await fetchEvaluation(false);
+      if (ok) setNotice("Evaluation suite completed. Scorecard updated.");
     } catch (err: any) {
       setError(err.message || "Failed to execute evaluation runner.");
     } finally {
@@ -94,15 +98,22 @@ export default function EvaluationPage() {
           </button>
         </div>
 
+        {notice && !error && (
+          <div role="status" className="p-3.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-medium max-w-lg">
+            {notice}
+          </div>
+        )}
+
         {error && (
-          <div className="p-3.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-medium max-w-lg">
+          <div role="alert" className="p-3.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs font-medium max-w-lg">
             {error}
           </div>
         )}
 
         {loading ? (
-          <div className="flex flex-1 items-center justify-center min-h-[300px]">
-            <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <div role="status" className="flex flex-1 items-center justify-center min-h-[300px]">
+            <div aria-hidden="true" className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <span className="sr-only">Loading evaluation report</span>
           </div>
         ) : (
           <div className="space-y-6">
