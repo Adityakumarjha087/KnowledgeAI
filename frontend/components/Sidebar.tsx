@@ -35,6 +35,13 @@ export default function Sidebar({ children }: SidebarProps) {
     }
   }, [router]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -98,16 +105,19 @@ export default function Sidebar({ children }: SidebarProps) {
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="app-sidebar"
           className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/70"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <svg aria-hidden="true" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       </div>
 
       {/* Sidebar Panel */}
-      <aside className={`
+      <aside id="app-sidebar" className={`
         fixed md:sticky top-0 bottom-0 z-30
         w-64 border-r border-white/10 bg-[#050505]/95 backdrop-blur-xl
         flex flex-col justify-between p-6 shrink-0 h-screen transition-transform duration-300
@@ -125,7 +135,7 @@ export default function Sidebar({ children }: SidebarProps) {
           </Link>
 
           {/* Menu Options */}
-          <nav className="space-y-1.5">
+          <nav aria-label="Main" className="space-y-1.5">
             {menuItems.map((item) => {
               const active = pathname.startsWith(item.path);
               return (
@@ -133,6 +143,7 @@ export default function Sidebar({ children }: SidebarProps) {
                   key={item.name}
                   href={item.path}
                   onClick={() => setMobileOpen(false)}
+                  aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all border ${
                     active
                       ? "bg-white text-black border-white shadow-sm font-bold"
@@ -171,6 +182,7 @@ export default function Sidebar({ children }: SidebarProps) {
       {/* Backdrop overlay for mobile */}
       {mobileOpen && (
         <div
+          aria-hidden="true"
           onClick={() => setMobileOpen(false)}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden"
         />
