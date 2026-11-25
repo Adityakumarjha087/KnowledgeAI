@@ -18,7 +18,7 @@ export default function Home() {
       {/* Navigation Header */}
       <header className="relative z-20 max-w-6xl mx-auto px-6 py-8 flex items-center justify-between border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-black text-black text-sm shadow-md">
+          <div aria-hidden="true" className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-black text-black text-sm shadow-md">
             K
           </div>
           <span className="font-bold text-lg tracking-tight text-white">
@@ -26,7 +26,7 @@ export default function Home() {
           </span>
         </div>
 
-        <nav className="flex items-center gap-3">
+        <nav aria-label="Account" className="flex items-center gap-3">
           <Link
             href="/login"
             className="px-4 py-2 rounded-lg text-sm font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
@@ -47,7 +47,7 @@ export default function Home() {
         {/* Badge & Headlines */}
         <div className="space-y-6 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/15 bg-white/5 text-white/90 text-xs font-semibold uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" aria-hidden="true" />
             <span>Enterprise Knowledge Assistant</span>
           </div>
 
@@ -65,7 +65,7 @@ export default function Home() {
               className="px-8 py-3.5 rounded-xl text-sm font-bold btn-white flex items-center gap-2 shadow-lg shadow-white/5"
             >
               <span>Launch Platform</span>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <svg className="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </Link>
@@ -81,7 +81,7 @@ export default function Home() {
         {/* Feature Cards Grid (Crisp Black Cards with Fine White Lines & Deep Shadows) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left pt-6">
           <div className="black-card p-8 rounded-2xl space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white text-lg font-bold">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white text-lg font-bold" aria-hidden="true">
               ⚡
             </div>
             <h3 className="text-lg font-bold text-white">Hybrid Retrieval Pipeline</h3>
@@ -92,7 +92,7 @@ export default function Home() {
           </div>
 
           <div className="black-card p-8 rounded-2xl space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white text-lg font-bold">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white text-lg font-bold" aria-hidden="true">
               🛡️
             </div>
             <h3 className="text-lg font-bold text-white">Multi-Tenant Isolation</h3>
@@ -103,7 +103,7 @@ export default function Home() {
           </div>
 
           <div className="black-card p-8 rounded-2xl space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white text-lg font-bold">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-white text-lg font-bold" aria-hidden="true">
               📊
             </div>
             <h3 className="text-lg font-bold text-white">Automated RAG Evaluation</h3>
