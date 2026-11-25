@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Enterprise AI Knowledge Assistant",
+  title: {
+    default: "Enterprise AI Knowledge Assistant",
+    template: "%s | KnowledgeAI",
+  },
   description: "Secure, production-grade knowledge indexing and RAG chat platform",
 };
 
