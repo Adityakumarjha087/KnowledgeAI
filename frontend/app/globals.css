@@ -125,6 +125,16 @@ body {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 }
 
+/* Visible keyboard focus for links, buttons and custom controls on the dark theme */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 /* Respect the OS "reduce motion" preference */
 @media (prefers-reduced-motion: reduce) {
   *,
