@@ -120,11 +120,16 @@ export default function RegisterPage() {
               type="password"
               autoComplete="new-password"
               required
+              minLength={6}
+              aria-describedby="password-hint"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full px-3.5 py-2.5 rounded-lg input-static text-xs font-medium"
             />
+            <p id="password-hint" className="mt-1.5 text-white/50 text-[11px]">
+              At least 6 characters.
+            </p>
           </div>
 
           <button
