@@ -636,7 +636,10 @@ export default function ChatPage() {
               <div className="grid grid-cols-2 gap-2 text-xs text-white/60 font-mono">
                 <div>File: <strong className="text-white">{inspectSource.filename}</strong></div>
                 <div>Location: <strong className="text-white">
-                  {inspectSource.page_number ? `Page ${inspectSource.page_number}` : ""}{inspectSource.section ? `, Sec ${inspectSource.section}` : "Full doc"}
+                  {[
+                    inspectSource.page_number ? `Page ${inspectSource.page_number}` : "",
+                    inspectSource.section ? `Sec ${inspectSource.section}` : "",
+                  ].filter(Boolean).join(", ") || "Full doc"}
                 </strong></div>
               </div>
               <div className="p-4 rounded-xl bg-black border border-white/10 text-xs text-white/80 font-mono leading-relaxed whitespace-pre-wrap max-h-72 overflow-y-auto">
