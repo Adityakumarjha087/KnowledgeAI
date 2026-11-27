@@ -39,6 +39,8 @@ export default function ChatPage() {
   const [feedbackMessageId, setFeedbackMessageId] = useState<number | null>(null);
   const [feedbackRating, setFeedbackRating] = useState<number>(1);
   const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
+  const [listError, setListError] = useState("");
 
   // Chat/Session-level isolated document attachment
   const [attachedDocId, setAttachedDocId] = useState<number | null>(null);
@@ -73,8 +75,9 @@ export default function ChatPage() {
     try {
       const list = await api.get<ConversationItem[]>("/conversations");
       setConversations(list);
+      setListError("");
     } catch (err: any) {
-      console.error("Failed to load conversations:", err.message);
+      setListError(err.message || "Failed to load past chats.");
     }
   };
 
@@ -267,8 +270,8 @@ export default function ChatPage() {
       await api.put(`/conversations/${id}`, { title: editingTitle });
       setConversations(conversations.map((c) => (c.id === id ? { ...c, title: editingTitle } : c)));
       setEditingConvId(null);
-    } catch {
-      alert("Failed to update title");
+    } catch (err: any) {
+      setError(err.message || "Failed to update title");
     }
   };
 
@@ -282,13 +285,14 @@ export default function ChatPage() {
       if (activeConvId === id) {
         handleNewChat();
       }
-    } catch {
-      alert("Failed to delete conversation");
+    } catch (err: any) {
+      setError(err.message || "Failed to delete conversation");
     }
   };
 
   const handleFeedbackSubmit = async () => {
     if (feedbackMessageId === null) return;
+    setFeedbackError("");
     try {
       await api.post("/feedback", {
         message_id: feedbackMessageId,
@@ -304,8 +308,8 @@ export default function ChatPage() {
 
       setFeedbackMessageId(null);
       setFeedbackComment("");
-    } catch {
-      alert("Failed to submit feedback");
+    } catch (err: any) {
+      setFeedbackError(err.message || "Failed to submit feedback");
     }
   };
 
@@ -326,7 +330,18 @@ export default function ChatPage() {
 
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
             <span className="text-white/40 text-[10px] font-mono uppercase tracking-wider px-2 block mb-1">Past Chats</span>
-            {conversations.length === 0 ? (
+            {listError && (
+              <div role="alert" className="mx-1 mb-2 p-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs">
+                <p>{listError}</p>
+                <button
+                  onClick={fetchConversations}
+                  className="mt-1 underline underline-offset-2 hover:text-white cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {conversations.length === 0 && !listError ? (
               <p className="text-white/40 text-xs px-2 italic">No past conversations.</p>
             ) : (
               conversations.map((conv) => {
@@ -495,6 +510,7 @@ export default function ChatPage() {
                               <button
                                 onClick={() => {
                                   setFeedbackMessageId(msg.id as number);
+                                  setFeedbackError("");
                                   setFeedbackRating(1);
                                 }}
                                 aria-label="Mark answer as helpful"
@@ -511,6 +527,7 @@ export default function ChatPage() {
                               <button
                                 onClick={() => {
                                   setFeedbackMessageId(msg.id as number);
+                                  setFeedbackError("");
                                   setFeedbackRating(-1);
                                 }}
                                 aria-label="Mark answer as not helpful"
@@ -686,6 +703,9 @@ export default function ChatPage() {
                   className="w-full px-3 py-2 rounded-xl input-static text-xs font-medium"
                 />
               </div>
+              {feedbackError && (
+                <p role="alert" className="text-red-300 text-xs">{feedbackError}</p>
+              )}
               <button
                 onClick={handleFeedbackSubmit}
                 className="w-full py-2.5 rounded-xl btn-white font-bold text-xs text-black cursor-pointer shadow-md"
