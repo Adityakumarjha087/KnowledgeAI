@@ -435,7 +435,7 @@ export default function ChatPage() {
           )}
 
           {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-5">
+          <div role="log" aria-label="Conversation" aria-busy={generating || loadingHistory} tabIndex={0} className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-5 focus-visible:outline-none">
             {messages.length === 0 && !loadingHistory ? (
               <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-4">
                 <div className="w-14 h-14 rounded-2xl bg-white/5 text-white border border-white/15 flex items-center justify-center shadow-xl">
@@ -497,6 +497,9 @@ export default function ChatPage() {
                                   setFeedbackMessageId(msg.id as number);
                                   setFeedbackRating(1);
                                 }}
+                                aria-label="Mark answer as helpful"
+                                aria-pressed={msg.rating === 1}
+                                title="Helpful"
                                 className={`p-1 rounded-lg border text-xs transition-colors cursor-pointer ${
                                   msg.rating === 1
                                     ? "bg-white text-black border-white"
@@ -510,6 +513,9 @@ export default function ChatPage() {
                                   setFeedbackMessageId(msg.id as number);
                                   setFeedbackRating(-1);
                                 }}
+                                aria-label="Mark answer as not helpful"
+                                aria-pressed={msg.rating === -1}
+                                title="Not helpful"
                                 className={`p-1 rounded-lg border text-xs transition-colors cursor-pointer ${
                                   msg.rating === -1
                                     ? "bg-red-950 text-red-300 border-red-500/40"
@@ -529,7 +535,7 @@ export default function ChatPage() {
             )}
 
             {generating && (
-              <div className="flex items-center gap-2.5 text-white/60 text-xs font-mono pl-2">
+              <div role="status" className="flex items-center gap-2.5 text-white/60 text-xs font-mono pl-2">
                 <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 <span>Retrieving context & generating answer...</span>
               </div>
